@@ -26,6 +26,7 @@ class HTMLSlacker(HTMLParser):
         self.skip = False
         self.isProcessingList = False
         self.isProcessingOrderedList = False
+        self.isQuote = False
         self.orderedNumber = 0
 
         # slackified string
@@ -44,6 +45,10 @@ class HTMLSlacker(HTMLParser):
         :param attrs: we need to recover attributes of anchor
         :return:
         """
+        if self.isQuote:
+            self.output += LINEBR + '>'
+            return
+
         if tag == 'br' or tag == 'p':
             self.output += LINEBR
         if tag == 'b' or tag == 'strong':
@@ -52,8 +57,11 @@ class HTMLSlacker(HTMLParser):
             self.output += ' *'
         if tag == 'i' or tag == 'em':
             self.output += ' _'
-        if tag == 'code':
-            self.output += '`'
+        if tag == 'pre':
+            self.output += '```'
+        if tag == 'blockquote':
+            self.output += '>'
+            self.isQuote = True
         if tag == 'a':
             self.output += '<'
             for attr in attrs:
@@ -71,6 +79,8 @@ class HTMLSlacker(HTMLParser):
         if tag == 'li' and self.isProcessingOrderedList:
             self.output += '{}. '.format(self.orderedNumber)
             self.orderedNumber = self.orderedNumber + 1
+        if tag == 'del':
+            self.output += '~'
 
     def handle_endtag(self, tag):
         """
@@ -86,8 +96,11 @@ class HTMLSlacker(HTMLParser):
             self.output += '_ '
         if tag == 'a':
             self.output += '>'
-        if tag == 'code':
-            self.output += '`'
+        if tag == 'pre':
+            self.output += '```'
+        if tag == 'blockquote':
+            self.output += LINEBR
+            self.isQuote = False
         if tag == 'style' or tag == 'script':
             self.skip = False
         if tag == 'ul':
@@ -98,6 +111,8 @@ class HTMLSlacker(HTMLParser):
             self.isProcessingOrderedList = False
         if tag == 'li' and self.isProcessingOrderedList:
             self.output += LINEBR
+        if tag == 'del':
+            self.output += '~'
 
     def handle_data(self, data):
         """
